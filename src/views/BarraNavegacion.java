@@ -100,6 +100,7 @@ public class BarraNavegacion {
         agregarBoton(barra, pantallaActual, LibroDiarioPanel.class,    "Libro Diario");
         agregarBoton(barra, pantallaActual, LibroMayorPanel.class,     "Libro Mayor");
         agregarBoton(barra, pantallaActual, LibroIvaPanel.class,       "Libro de IVA");
+        agregarBoton(barra, pantallaActual, EstadosContablesPanel.class, "Estados");
 
         return barra;
     }
@@ -145,6 +146,7 @@ public class BarraNavegacion {
             else if (destino == LibroDiarioPanel.class) siguiente = new LibroDiarioPanel();
             else if (destino == LibroMayorPanel.class) siguiente = new LibroMayorPanel();
             else if (destino == LibroIvaPanel.class) siguiente = new LibroIvaPanel();
+            else if (destino == EstadosContablesPanel.class) siguiente = new EstadosContablesPanel();
             else return;
 
             // Los constructores actuales muestran el JFrame. Se lo oculta de
