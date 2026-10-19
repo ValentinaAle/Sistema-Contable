@@ -19,8 +19,8 @@ public class EstadosContablesDAO {
                 + "FROM rubros r LEFT JOIN cuentas c ON c.rubro_id = r.id "
                 + "LEFT JOIN asiento_detalle d ON d.cuenta_codigo = c.codigo "
                 + "LEFT JOIN asientos a ON a.id = d.asiento_id AND a.fecha <= ? "
-                + "WHERE r.grupo_id = ? AND r.tipo = ? "
-                + "GROUP BY r.id, r.nombre, r.codigo ORDER BY r.codigo";
+                + "WHERE r.grupo_id = ? AND r.tipo = ? AND r.orden_exposicion < 90 "
+                + "GROUP BY r.id, r.nombre, r.codigo, r.orden_exposicion ORDER BY r.orden_exposicion, r.codigo";
         try (Connection conn = Conexion.conectar(); PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setDate(1, cierre);
             pst.setInt(2, grupoId);
@@ -41,7 +41,8 @@ public class EstadosContablesDAO {
                 + "FROM rubros r LEFT JOIN cuentas c ON c.rubro_id = r.id "
                 + "LEFT JOIN asiento_detalle d ON d.cuenta_codigo = c.codigo "
                 + "LEFT JOIN asientos a ON a.id = d.asiento_id AND a.fecha <= ? "
-                + "WHERE r.grupo_id = ? GROUP BY r.id, r.nombre, r.codigo ORDER BY r.codigo";
+                + "WHERE r.grupo_id = ? AND r.orden_exposicion < 90 "
+                + "GROUP BY r.id, r.nombre, r.codigo, r.orden_exposicion ORDER BY r.orden_exposicion, r.codigo";
         try (Connection conn = Conexion.conectar(); PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setDate(1, cierre);
             pst.setInt(2, grupoId);
