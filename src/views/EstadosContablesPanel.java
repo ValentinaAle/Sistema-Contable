@@ -20,7 +20,8 @@ public class EstadosContablesPanel extends JFrame {
     private static final Color AZUL = new Color(30, 80, 160), AZUL_OSCURO = new Color(20, 55, 120);
     private static final Color FONDO = new Color(245, 247, 250), BORDE = new Color(211, 222, 239);
     private final EstadosContablesDAO dao = new EstadosContablesDAO();
-    private JTextField txtEmpresa, txtCierre;
+    private JTextField txtEmpresa;
+    private SelectorFecha selectorCierre;
     private JTable tablaResultados, tablaActivo, tablaPasivo;
     private JLabel lblResultado, lblActivo, lblPasivo;
 
@@ -53,13 +54,13 @@ public class EstadosContablesPanel extends JFrame {
         JLabel t=new JLabel("ESTADOS CONTABLES"); t.setFont(new Font("Segoe UI",Font.BOLD,18)); t.setForeground(Color.WHITE);
         JLabel s=new JLabel("Exposición contable — RT 8 y RT 9"); s.setFont(new Font("Segoe UI",Font.PLAIN,11)); s.setForeground(new Color(200,215,240));
         textos.add(t); textos.add(s); izq.add(textos); h.add(izq,BorderLayout.WEST);
-        h.add(BarraNavegacion.crearConControles(EstadosContablesPanel.class),BorderLayout.EAST); return h;
+        h.add(BarraNavegacion.crear(EstadosContablesPanel.class),BorderLayout.EAST); return h;
     }
 
     private JPanel crearParametros() {
         JPanel p=tarjeta(); p.setLayout(new FlowLayout(FlowLayout.LEFT,12,4));
-        txtEmpresa=new JTextField("Sistema Contable S.A.",24); txtCierre=new JTextField(LocalDate.now().toString(),10);
-        p.add(etiqueta("Entidad:")); p.add(txtEmpresa); p.add(etiqueta("Fecha de cierre (AAAA-MM-DD):")); p.add(txtCierre);
+        txtEmpresa=new JTextField("Sistema Contable S.A.",24); selectorCierre=new SelectorFecha(); selectorCierre.setFecha(LocalDate.now());
+        p.add(etiqueta("Entidad:")); p.add(txtEmpresa); p.add(etiqueta("Fecha de cierre:")); p.add(selectorCierre);
         JButton actualizar=boton("ACTUALIZAR",new Color(33,118,233)); actualizar.addActionListener(e->actualizar()); p.add(actualizar);
         JButton imprimir=boton("IMPRIMIR",new Color(108,117,125)); imprimir.addActionListener(e->imprimir()); p.add(imprimir);
         return p;
@@ -82,9 +83,11 @@ public class EstadosContablesPanel extends JFrame {
 
     private void actualizar() {
         try {
-            Date cierre=Date.valueOf(txtCierre.getText().trim());
+            LocalDate fecha = selectorCierre.getFecha();
+            if (fecha == null) throw new IllegalArgumentException();
+            Date cierre=Date.valueOf(fecha);
             cargarResultados(cierre); cargarSituacion(cierre);
-        } catch (Exception ex) { JOptionPane.showMessageDialog(this,"Ingresá una fecha válida con formato AAAA-MM-DD.","Fecha de cierre",JOptionPane.WARNING_MESSAGE); }
+        } catch (IllegalArgumentException ex) { JOptionPane.showMessageDialog(this,"Ingresá una fecha válida con formato AAAA-MM-DD.","Fecha de cierre",JOptionPane.WARNING_MESSAGE); } catch (RuntimeException ex) { JOptionPane.showMessageDialog(this,"No se pudo generar Estados Contables. Ejecutá sql/07_orden_rt8_rubros.sql y verificá la conexión a la base de datos.","Estados Contables",JOptionPane.ERROR_MESSAGE); }
     }
     private void cargarResultados(Date cierre) {
         DefaultTableModel m=modelo(tablaResultados); m.setRowCount(0);
@@ -112,5 +115,5 @@ public class EstadosContablesPanel extends JFrame {
     private JLabel total(String x){JLabel l=new JLabel(x);l.setFont(new Font("Segoe UI",Font.BOLD,14));l.setForeground(new Color(21,96,74));return l;}
     private JPanel tarjeta(){JPanel p=new JPanel();p.setBackground(Color.WHITE);p.setBorder(new CompoundBorder(new LineBorder(BORDE,1,true),new EmptyBorder(16,18,16,18)));return p;}
     private JButton boton(String x,Color c){JButton b=new JButton(x){protected void paintComponent(Graphics g){Graphics2D z=(Graphics2D)g;z.setColor(getModel().isRollover()?c.darker():c);z.fill(new RoundRectangle2D.Float(0,0,getWidth(),getHeight(),8,8));z.setColor(Color.WHITE);z.setFont(getFont());FontMetrics f=z.getFontMetrics();z.drawString(getText(),(getWidth()-f.stringWidth(getText()))/2,(getHeight()+f.getAscent()-f.getDescent())/2);}};b.setFont(new Font("Segoe UI",Font.BOLD,12));b.setPreferredSize(new Dimension(120,36));b.setOpaque(false);b.setContentAreaFilled(false);b.setBorderPainted(false);b.setFocusPainted(false);return b;}
-    private void imprimir(){try{JTable t=tablaResultados; t.print(JTable.PrintMode.FIT_WIDTH,new java.text.MessageFormat(txtEmpresa.getText()+" — Estado contable al "+txtCierre.getText()),null);}catch(PrinterException e){JOptionPane.showMessageDialog(this,"No se pudo imprimir el informe.");}}
+    private void imprimir(){try{JTable t=tablaResultados; t.print(JTable.PrintMode.FIT_WIDTH,new java.text.MessageFormat(txtEmpresa.getText()+" — Estado contable al "+selectorCierre.getTexto()),null);}catch(PrinterException e){JOptionPane.showMessageDialog(this,"No se pudo imprimir el informe.");}}
 }

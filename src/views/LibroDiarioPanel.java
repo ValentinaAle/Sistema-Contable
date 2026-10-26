@@ -69,7 +69,7 @@ public class LibroDiarioPanel extends JFrame {
     private final CuentaDAO  cuentaDAO  = new CuentaDAO();
 
     // ── Componentes del formulario de alta ─────────────────────────────────────
-    private JTextField txtFecha;
+    private SelectorFecha selectorFecha;
     private JTextField txtConcepto;
     private JComboBox<String> cboOperacion;
     private DatosIvaPanel datosIva;
@@ -151,8 +151,6 @@ public class LibroDiarioPanel extends JFrame {
                 GradientPaint gp = new GradientPaint(0, 0, AZUL_HEADER, getWidth(), 0, AZUL_OSCURO);
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(108, 170, 255, 185));
-                g2.fillRect(0, getHeight() - 3, getWidth(), 3);
             }
         };
         header.setPreferredSize(new Dimension(0, 88));
@@ -161,7 +159,19 @@ public class LibroDiarioPanel extends JFrame {
         JPanel izq = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
         izq.setOpaque(false);
 
-        JLabel icono = BarraNavegacion.crearIconoLibro();
+        JLabel icono = new JLabel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(255, 255, 255, 50));
+                g2.fillOval(0, 0, 46, 46);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 22));
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString("📖", (46 - fm.stringWidth("📖")) / 2, 31);
+            }
+        };
+        icono.setPreferredSize(new Dimension(46, 46));
 
         JPanel titulos = new JPanel();
         titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
@@ -180,7 +190,7 @@ public class LibroDiarioPanel extends JFrame {
         header.add(izq, BorderLayout.WEST);
 
         // Navegación hacia el resto de las pantallas del sistema
-        header.add(BarraNavegacion.crearConControles(LibroDiarioPanel.class), BorderLayout.EAST);
+        header.add(BarraNavegacion.crear(LibroDiarioPanel.class), BorderLayout.EAST);
 
         return header;
     }
@@ -210,12 +220,11 @@ public class LibroDiarioPanel extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0; gbc.fill = GridBagConstraints.NONE;
         cabecera.add(lblFecha, gbc);
 
-        txtFecha = crearCampoTexto("dd/mm/aaaa", false);
-        txtFecha.setPreferredSize(new Dimension(140, 38));
-        txtFecha.setText(new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
-        aplicarFiltroFecha(txtFecha);
+        selectorFecha = new SelectorFecha();
+        selectorFecha.setPreferredSize(new Dimension(155, 38));
+        selectorFecha.setFecha(java.time.LocalDate.now());
         gbc.gridx = 1; gbc.fill = GridBagConstraints.NONE;
-        cabecera.add(txtFecha, gbc);
+        cabecera.add(selectorFecha, gbc);
 
         JLabel lblConcepto = new JLabel("Concepto:");
         lblConcepto.setFont(FUENTE_LABEL);
@@ -452,7 +461,7 @@ public class LibroDiarioPanel extends JFrame {
         JPanel p = new JPanel();
         p.setBackground(Color.WHITE);
         p.setBorder(new CompoundBorder(
-            new LineBorder(new Color(211, 222, 239), 1, true),
+            new LineBorder(BORDE_COLOR, 1, true),
             new EmptyBorder(20, 22, 20, 22)
         ));
         p.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -740,7 +749,7 @@ public class LibroDiarioPanel extends JFrame {
     private void accionGuardarAsiento() {
         if (tablaDetalle.isEditing()) tablaDetalle.getCellEditor().stopCellEditing();
 
-        String fechaTexto = txtFecha.getText().trim();
+        String fechaTexto = selectorFecha.getTexto().trim();
         String concepto = txtConcepto.getText().trim();
 
         if (concepto.isEmpty()) {
@@ -878,7 +887,7 @@ public class LibroDiarioPanel extends JFrame {
         datosIva.limpiar();
         cboOperacion.setSelectedIndex(0);
         txtConcepto.setText("");
-        txtFecha.setText(new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+        selectorFecha.setFecha(java.time.LocalDate.now());
         modeloDetalle.setRowCount(0);
         agregarLineaDetalle();
         agregarLineaDetalle();

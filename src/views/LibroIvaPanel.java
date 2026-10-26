@@ -10,7 +10,7 @@ import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.print.PrinterException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,8 +51,7 @@ public class LibroIvaPanel extends JFrame {
 
     private final LibroIvaDAO ivaDAO = new LibroIvaDAO();
 
-    private JComboBox<String> cboMes;
-    private JTextField txtAnio;
+    private SelectorFecha selectorPeriodo;
     private JRadioButton rbCompras;
     private JRadioButton rbVentas;
     private JTable tablaIva;
@@ -104,17 +103,11 @@ public class LibroIvaPanel extends JFrame {
                 GradientPaint gp = new GradientPaint(0, 0, AZUL_HEADER, getWidth(), 0, AZUL_OSCURO);
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(108, 170, 255, 185));
-                g2.fillRect(0, getHeight() - 3, getWidth(), 3);
             }
         };
         header.setPreferredSize(new Dimension(0, 88));
         header.setBorder(new EmptyBorder(10, 20, 10, 20));
 
-        JPanel izq = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
-        izq.setOpaque(false);
-
-        JLabel icono = BarraNavegacion.crearIconoLibro();
         JPanel titulos = new JPanel();
         titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
         titulos.setOpaque(false);
@@ -127,10 +120,12 @@ public class LibroIvaPanel extends JFrame {
         titulos.add(lblTitulo);
         titulos.add(lblSubtitulo);
 
-        izq.add(icono);
+        JPanel izq = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
+        izq.setOpaque(false);
+        izq.add(BarraNavegacion.crearIconoLibro());
         izq.add(titulos);
         header.add(izq, BorderLayout.WEST);
-        header.add(BarraNavegacion.crearConControles(LibroIvaPanel.class), BorderLayout.EAST);
+        header.add(BarraNavegacion.crear(LibroIvaPanel.class), BorderLayout.EAST);
         return header;
     }
 
@@ -138,25 +133,12 @@ public class LibroIvaPanel extends JFrame {
         JPanel tarjeta = crearTarjeta();
         tarjeta.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 4));
 
-        JLabel lblMes = new JLabel("Mes:");
+        JLabel lblMes = new JLabel("Período:");
         lblMes.setFont(FUENTE_LABEL);
         lblMes.setForeground(TEXTO_LABEL);
-
-        cboMes = new JComboBox<>(MESES);
-        cboMes.setFont(FUENTE_CAMPO);
-        cboMes.setPreferredSize(new Dimension(150, 38));
-        int mesActual = Calendar.getInstance().get(Calendar.MONTH);
-        cboMes.setSelectedIndex(mesActual);
-
-        JLabel lblAnio = new JLabel("Año:");
-        lblAnio.setFont(FUENTE_LABEL);
-        lblAnio.setForeground(TEXTO_LABEL);
-
-        txtAnio = new JTextField(String.valueOf(Calendar.getInstance().get(Calendar.YEAR)), 6);
-        txtAnio.setFont(FUENTE_CAMPO);
-        txtAnio.setPreferredSize(new Dimension(80, 38));
-        txtAnio.setBackground(FONDO_CAMPO);
-        txtAnio.setBorder(new CompoundBorder(new LineBorder(BORDE_COLOR, 1, true), new EmptyBorder(4, 8, 4, 8)));
+        selectorPeriodo = new SelectorFecha();
+        selectorPeriodo.setPreferredSize(new Dimension(155, 38));
+        selectorPeriodo.setFecha(LocalDate.now());
 
         rbCompras = new JRadioButton("IVA Compras", true);
         rbVentas = new JRadioButton("IVA Ventas");
@@ -177,13 +159,10 @@ public class LibroIvaPanel extends JFrame {
         btnImprimir.addActionListener(e -> imprimirInforme());
         rbCompras.addActionListener(e -> generarInforme());
         rbVentas.addActionListener(e -> generarInforme());
-        cboMes.addActionListener(e -> generarInforme());
-        txtAnio.addActionListener(e -> generarInforme());
+        selectorPeriodo.setAlElegir(e -> generarInforme());
 
         tarjeta.add(lblMes);
-        tarjeta.add(cboMes);
-        tarjeta.add(lblAnio);
-        tarjeta.add(txtAnio);
+        tarjeta.add(selectorPeriodo);
         tarjeta.add(Box.createHorizontalStrut(10));
         tarjeta.add(rbCompras);
         tarjeta.add(rbVentas);
@@ -272,7 +251,7 @@ public class LibroIvaPanel extends JFrame {
         JPanel p = new JPanel();
         p.setBackground(Color.WHITE);
         p.setBorder(new CompoundBorder(
-                new LineBorder(new Color(211, 222, 239), 1, true),
+                new LineBorder(BORDE_COLOR, 1, true),
                 new EmptyBorder(16, 18, 16, 18)
         ));
         return p;
@@ -308,17 +287,15 @@ public class LibroIvaPanel extends JFrame {
     //  GENERAR EL INFORME
     // ══════════════════════════════════════════════════════════════════════════
     private void generarInforme() {
-        int mes = cboMes.getSelectedIndex() + 1;
-        int anio;
-        try {
-            anio = Integer.parseInt(txtAnio.getText().trim());
-            if (anio < 1900 || anio > 9999) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
+        LocalDate fecha = selectorPeriodo.getFecha();
+        if (fecha == null) {
             btnImprimir.setEnabled(false);
-            JOptionPane.showMessageDialog(this, "Ingresá un año válido.",
+            JOptionPane.showMessageDialog(this, "Ingresá una fecha válida con formato dd/MM/yyyy.",
                     "Dato inválido", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        int mes = fecha.getMonthValue();
+        int anio = fecha.getYear();
 
         boolean esCompras = rbCompras.isSelected();
         List<RegistroIva> registros;

@@ -96,8 +96,6 @@ public class LibroMayorPanel extends JFrame {
                 GradientPaint gp = new GradientPaint(0, 0, AZUL_HEADER, getWidth(), 0, AZUL_OSCURO);
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(108, 170, 255, 185));
-                g2.fillRect(0, getHeight() - 3, getWidth(), 3);
             }
         };
         header.setPreferredSize(new Dimension(0, 88));
@@ -105,8 +103,6 @@ public class LibroMayorPanel extends JFrame {
 
         JPanel izq = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
         izq.setOpaque(false);
-
-        JLabel icono = BarraNavegacion.crearIconoLibro();
 
         JPanel titulos = new JPanel();
         titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
@@ -120,10 +116,10 @@ public class LibroMayorPanel extends JFrame {
         titulos.add(lblTitulo);
         titulos.add(lblSubtitulo);
 
-        izq.add(icono);
+        izq.add(BarraNavegacion.crearIconoLibro());
         izq.add(titulos);
         header.add(izq, BorderLayout.WEST);
-        header.add(BarraNavegacion.crearConControles(LibroMayorPanel.class), BorderLayout.EAST);
+        header.add(BarraNavegacion.crear(LibroMayorPanel.class), BorderLayout.EAST);
         return header;
     }
 
@@ -217,7 +213,7 @@ public class LibroMayorPanel extends JFrame {
         JPanel p = new JPanel();
         p.setBackground(Color.WHITE);
         p.setBorder(new CompoundBorder(
-                new LineBorder(new Color(211, 222, 239), 1, true),
+                new LineBorder(BORDE_COLOR, 1, true),
                 new EmptyBorder(16, 18, 16, 18)
         ));
         return p;

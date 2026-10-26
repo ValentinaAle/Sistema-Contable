@@ -135,6 +135,76 @@ public class AsientoDAO {
         }
     }
 
+    /**
+     * Registra un asiento de cierre y su proceso en la misma transacción.
+     * Los importes ya llegan calculados con BigDecimal desde el módulo de cierre.
+     */
+    public String crearAsientoConProceso(Asiento asiento, String origen, String tipoProceso,
+                                         java.sql.Date desde, java.sql.Date hasta) {
+        ultimoError = "";
+        List<AsientoDetalle> detalles = asiento.getDetalles();
+        if (detalles == null || detalles.size() < 2) return "SIN_LINEAS";
+        double debe = 0, haber = 0;
+        for (AsientoDetalle d : detalles) {
+            if (d.getDebe() < 0 || d.getHaber() < 0 || (d.getDebe() > 0 && d.getHaber() > 0)) return "ERROR";
+            debe += d.getDebe(); haber += d.getHaber();
+        }
+        if (Math.abs(debe - haber) >= 0.005 || debe <= 0) return "DESBALANCEADO";
+
+        Connection conn = null;
+        try {
+            conn = Conexion.conectar();
+            if (conn == null) return "ERROR";
+            conn.setAutoCommit(false);
+            if (!"AJUSTE".equals(tipoProceso)) {
+                try (PreparedStatement existe = conn.prepareStatement(
+                        "SELECT id FROM procesos WHERE tipo=? AND fecha_desde=? AND fecha_hasta=? FOR UPDATE")) {
+                    existe.setString(1, tipoProceso); existe.setDate(2, desde); existe.setDate(3, hasta);
+                    try (ResultSet rs = existe.executeQuery()) {
+                        if (rs.next()) { conn.rollback(); ultimoError = "Ya existe un proceso de este tipo para el período."; return "DUPLICADO"; }
+                    }
+                }
+            }
+            int numero = obtenerSiguienteNumero(conn);
+            int asientoId;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO asientos(numero,fecha,concepto,total_debe,total_haber,origen) VALUES(?,?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, numero); ps.setString(2, asiento.getFecha()); ps.setString(3, asiento.getConcepto());
+                ps.setDouble(4, debe); ps.setDouble(5, haber); ps.setString(6, origen); ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next()) throw new SQLException("No se pudo crear el asiento.");
+                    asientoId = keys.getInt(1);
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO asiento_detalle(asiento_id,cuenta_codigo,debe,haber,orden) VALUES(?,?,?,?,?)")) {
+                int orden = 1;
+                for (AsientoDetalle d : detalles) {
+                    ps.setInt(1, asientoId); ps.setString(2, d.getCuentaCodigo());
+                    ps.setDouble(3, d.getDebe()); ps.setDouble(4, d.getHaber()); ps.setInt(5, orden++);
+                    ps.addBatch();
+                    aplicarMovimiento(conn, d.getCuentaCodigo(), d.getDebe(), d.getHaber());
+                }
+                ps.executeBatch();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO procesos(tipo,fecha_desde,fecha_hasta,asiento_id) VALUES(?,?,?,?)")) {
+                ps.setString(1, tipoProceso); ps.setDate(2, desde); ps.setDate(3, hasta); ps.setInt(4, asientoId);
+                ps.executeUpdate();
+            }
+            conn.commit();
+            asiento.setId(asientoId); asiento.setNumero(numero); asiento.setTotalDebe(debe); asiento.setTotalHaber(haber);
+            return "OK";
+        } catch (Exception e) {
+            ultimoError = e.getMessage() == null ? "No se pudo generar el proceso." : e.getMessage();
+            try { if (conn != null) conn.rollback(); } catch (SQLException ignored) {}
+            return "ERROR";
+        } finally {
+            try { if (conn != null) { conn.setAutoCommit(true); conn.close(); } } catch (SQLException ignored) {}
+        }
+    }
+
     private void aplicarMovimiento(Connection conn, String codigo, double debe, double haber) throws SQLException {
         String sql = "UPDATE cuentas SET saldo = saldo + CASE WHEN tipo_saldo IN ('D', 'Deudor') "
             + "THEN ? - ? ELSE ? - ? END WHERE codigo = ?";

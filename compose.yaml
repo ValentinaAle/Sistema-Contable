@@ -9,6 +9,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./sql/06_balance_cierre.sql:/docker-entrypoint-initdb.d/06_balance_cierre.sql:ro
+      - ./sql/07_orden_rt8_rubros.sql:/docker-entrypoint-initdb.d/07_orden_rt8_rubros.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=$$MYSQL_ROOT_PASSWORD"]
       interval: 5s
